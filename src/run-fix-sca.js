@@ -34,6 +34,23 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
       env: { ...process.env }
     });
 
+    // Debug: Check git status after fix
+    core.info('=== Debug: Git status after fix ===');
+    try {
+      let gitStatusOutput = '';
+      await exec.exec('git', ['status', '--porcelain'], {
+        cwd: projectPath,
+        listeners: {
+          stdout: (data) => {
+            gitStatusOutput += data.toString();
+          }
+        }
+      });
+      core.info(`Git status (porcelain): ${gitStatusOutput || '(no output)'}`);
+    } catch (error) {
+      core.warning(`Failed to get git status: ${error.message}`);
+    }
+
     // Check for changes in the repository
     let hasChanges = false;
     let gitDiffOutput = '';
@@ -47,6 +64,8 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
           }
         }
       });
+
+      core.info(`Git diff output: ${gitDiffOutput || '(no output)'}`);
 
       if (gitDiffOutput.trim().length > 0) {
         hasChanges = true;
