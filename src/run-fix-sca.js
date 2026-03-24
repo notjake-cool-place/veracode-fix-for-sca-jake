@@ -32,8 +32,9 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
     // ===== PRE-EXECUTION DEBUGGING =====
     core.info('=== PRE-EXECUTION DEBUG: pom.xml analysis ===');
     const pomPath = path.join(projectPath, 'pom.xml');
+    let pomContentBefore = null;
     if (fs.existsSync(pomPath)) {
-      const pomContentBefore = fs.readFileSync(pomPath, 'utf8');
+      pomContentBefore = fs.readFileSync(pomPath, 'utf8');
       const pomContentRaw = fs.readFileSync(pomPath);
 
       // Check line endings
@@ -42,9 +43,9 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
       core.info(`[PRE] Line endings detected: ${hasCRLF ? 'CRLF (Windows)' : 'LF (Unix)'}`);
       core.info(`[PRE] File size: ${pomContentRaw.length} bytes`);
 
-      // Check version
-      const versionMatch = pomContentBefore.match(/<version>([\d.]+)<\/version>/);
-      const foundVersion = versionMatch ? versionMatch[1] : 'NOT FOUND';
+      // Check version - look for log4j-core specifically (handle both LF and CRLF)
+      const log4jMatch = pomContentBefore.match(/log4j-core<\/artifactId>[\s\r\n]*<version>([\d.]+)<\/version>/);
+      const foundVersion = log4jMatch ? log4jMatch[1] : 'NOT FOUND';
       core.info(`[PRE] log4j-core version: ${foundVersion}`);
 
       // Hex dump of version area
@@ -84,9 +85,9 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
       core.info(`[POST] Line endings detected: ${hasCRLFAfter ? 'CRLF (Windows)' : 'LF (Unix)'}`);
       core.info(`[POST] File size: ${pomContentRawAfter.length} bytes`);
 
-      // Check version
-      const versionMatchAfter = pomContentAfter.match(/<version>([\d.]+)<\/version>/);
-      const foundVersionAfter = versionMatchAfter ? versionMatchAfter[1] : 'NOT FOUND';
+      // Check version - look for log4j-core specifically (handle both LF and CRLF)
+      const log4jMatchAfter = pomContentAfter.match(/log4j-core<\/artifactId>[\s\r\n]*<version>([\d.]+)<\/version>/);
+      const foundVersionAfter = log4jMatchAfter ? log4jMatchAfter[1] : 'NOT FOUND';
       core.info(`[POST] log4j-core version: ${foundVersionAfter}`);
 
       // Hex dump of version area
@@ -99,7 +100,7 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
       }
 
       // Compare before/after
-      const fileChanged = pomContentBefore !== pomContentAfter;
+      const fileChanged = pomContentBefore !== null && pomContentBefore !== pomContentAfter;
       core.info(`[POST] File content changed: ${fileChanged ? 'YES' : 'NO'}`);
 
       // Test manual replacements
