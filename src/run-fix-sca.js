@@ -29,11 +29,85 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
       args.push('-i', fixScaParams);
     }
 
+    // ===== PRE-EXECUTION DEBUGGING =====
+    core.info('=== PRE-EXECUTION DEBUG: pom.xml analysis ===');
+    const pomPath = path.join(projectPath, 'pom.xml');
+    if (fs.existsSync(pomPath)) {
+      const pomContentBefore = fs.readFileSync(pomPath, 'utf8');
+      const pomContentRaw = fs.readFileSync(pomPath);
+
+      // Check line endings
+      const hasCRLF = pomContentRaw.includes(Buffer.from('\r\n'));
+      const hasLF = pomContentRaw.includes(Buffer.from('\n'));
+      core.info(`[PRE] Line endings detected: ${hasCRLF ? 'CRLF (Windows)' : 'LF (Unix)'}`);
+      core.info(`[PRE] File size: ${pomContentRaw.length} bytes`);
+
+      // Check version
+      const versionMatch = pomContentBefore.match(/<version>([\d.]+)<\/version>/);
+      const foundVersion = versionMatch ? versionMatch[1] : 'NOT FOUND';
+      core.info(`[PRE] log4j-core version: ${foundVersion}`);
+
+      // Hex dump of version area
+      const versionIndex = pomContentBefore.indexOf('log4j-core');
+      if (versionIndex >= 0) {
+        const chunk = pomContentRaw.slice(Math.max(0, versionIndex - 50), versionIndex + 150);
+        core.info(`[PRE] Hex dump (50 bytes before + 150 after log4j-core):`);
+        core.info(`[PRE] ${chunk.toString('hex')}`);
+        core.info(`[PRE] ASCII: ${chunk.toString('ascii')}`);
+      }
+
+      // Test string matching
+      const searchStr1 = '<version>2.14.1</version>';
+      const found1 = pomContentBefore.includes(searchStr1);
+      core.info(`[PRE] Manual search for "${searchStr1}": ${found1 ? 'FOUND' : 'NOT FOUND'}`);
+
+      const searchStr2 = '<version>2.14.1</version>\r\n';
+      const found2 = pomContentBefore.includes(searchStr2);
+      core.info(`[PRE] Manual search with CRLF context: ${found2 ? 'FOUND' : 'NOT FOUND'}`);
+    }
+
     // Run veracode fix sca command
     core.info(`Running: ${veracodeBinary} ${args.join(' ')}`);
     await exec.exec(veracodeBinary, args, {
       env: { ...process.env }
     });
+
+    // ===== POST-EXECUTION DEBUGGING =====
+    core.info('=== POST-EXECUTION DEBUG: pom.xml analysis ===');
+    if (fs.existsSync(pomPath)) {
+      const pomContentAfter = fs.readFileSync(pomPath, 'utf8');
+      const pomContentRawAfter = fs.readFileSync(pomPath);
+
+      // Check line endings
+      const hasCRLFAfter = pomContentRawAfter.includes(Buffer.from('\r\n'));
+      const hasLFAfter = pomContentRawAfter.includes(Buffer.from('\n'));
+      core.info(`[POST] Line endings detected: ${hasCRLFAfter ? 'CRLF (Windows)' : 'LF (Unix)'}`);
+      core.info(`[POST] File size: ${pomContentRawAfter.length} bytes`);
+
+      // Check version
+      const versionMatchAfter = pomContentAfter.match(/<version>([\d.]+)<\/version>/);
+      const foundVersionAfter = versionMatchAfter ? versionMatchAfter[1] : 'NOT FOUND';
+      core.info(`[POST] log4j-core version: ${foundVersionAfter}`);
+
+      // Hex dump of version area
+      const versionIndexAfter = pomContentAfter.indexOf('log4j-core');
+      if (versionIndexAfter >= 0) {
+        const chunkAfter = pomContentRawAfter.slice(Math.max(0, versionIndexAfter - 50), versionIndexAfter + 150);
+        core.info(`[POST] Hex dump (50 bytes before + 150 after log4j-core):`);
+        core.info(`[POST] ${chunkAfter.toString('hex')}`);
+        core.info(`[POST] ASCII: ${chunkAfter.toString('ascii')}`);
+      }
+
+      // Compare before/after
+      const fileChanged = pomContentBefore !== pomContentAfter;
+      core.info(`[POST] File content changed: ${fileChanged ? 'YES' : 'NO'}`);
+
+      // Test manual replacements
+      const testReplace1 = pomContentAfter.replace('<version>2.14.1</version>', '<version>2.25.3</version>');
+      const testReplace2 = pomContentAfter.replace('<version>2.14.1</version>\r\n', '<version>2.25.3</version>\r\n');
+      core.info(`[POST] Manual replace (LF context) would change file: ${testReplace1 !== pomContentAfter ? 'YES' : 'NO'}`);
+      core.info(`[POST] Manual replace (CRLF context) would change file: ${testReplace2 !== pomContentAfter ? 'YES' : 'NO'}`);
+    }
 
     // Debug: Check git status after fix
     core.info('=== Debug: Git status after fix ===');
@@ -62,7 +136,6 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
       core.info(`Git config: ${gitConfigOutput}`);
 
       // Debug: Check pom.xml file
-      const pomPath = path.join(projectPath, 'pom.xml');
       if (fs.existsSync(pomPath)) {
         const pomContent = fs.readFileSync(pomPath, 'utf8');
         core.info(`pom.xml contains log4j version: ${pomContent.includes('2.25.3') ? '2.25.3 (FIXED)' : pomContent.includes('2.14.1') ? '2.14.1 (OLD)' : 'UNKNOWN'}`);
