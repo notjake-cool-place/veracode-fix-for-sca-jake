@@ -83123,7 +83123,8 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
       '--results', path.join(workspaceDir, 'veracode_artifact_directory/Veracode Agent Based SCA Results', 'scaResults.json'),
       '--transitive',
       '--async', 
-      '--decouple', 'true'
+      '--decouple', 'true',
+      '--verbose'
     ];
 
     if (fixScaParams && fixScaParams.trim() && fixScaParams !== 'SCA-*') {
