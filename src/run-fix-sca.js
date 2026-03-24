@@ -47,6 +47,25 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
         }
       });
       core.info(`Git status (porcelain): ${gitStatusOutput || '(no output)'}`);
+
+      // Debug: Check git config settings
+      let gitConfigOutput = '';
+      await exec.exec('git', ['config', '--list'], {
+        cwd: projectPath,
+        listeners: {
+          stdout: (data) => {
+            gitConfigOutput += data.toString();
+          }
+        }
+      });
+      core.info(`Git config: ${gitConfigOutput}`);
+
+      // Debug: Check pom.xml file
+      const pomPath = path.join(projectPath, 'pom.xml');
+      if (fs.existsSync(pomPath)) {
+        const pomContent = fs.readFileSync(pomPath, 'utf8');
+        core.info(`pom.xml contains log4j version: ${pomContent.includes('2.25.3') ? '2.25.3 (FIXED)' : pomContent.includes('2.14.1') ? '2.14.1 (OLD)' : 'UNKNOWN'}`);
+      }
     } catch (error) {
       core.warning(`Failed to get git status: ${error.message}`);
     }
