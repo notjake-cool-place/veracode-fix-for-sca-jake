@@ -83170,20 +83170,6 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
       core.info(`[PRE] Manual search with CRLF context: ${found2 ? 'FOUND' : 'NOT FOUND'}`);
     }
 
-    // ===== LINE ENDING NORMALIZATION HACK =====
-    // Convert CRLF to LF before CLI execution to test if line ending mismatch is the issue
-    core.info('=== Applying line ending normalization hack ===');
-    if (fs.existsSync(pomPath)) {
-      const pomContent = fs.readFileSync(pomPath, 'utf8');
-      const pomContentNormalized = pomContent.replace(/\r\n/g, '\n');
-      if (pomContent !== pomContentNormalized) {
-        core.info('[HACK] Converting CRLF → LF in pom.xml');
-        fs.writeFileSync(pomPath, pomContentNormalized, 'utf8');
-        core.info('[HACK] Line ending conversion complete');
-      } else {
-        core.info('[HACK] No CRLF found - file already has LF');
-      }
-    }
 
     // Run veracode fix sca command
     core.info(`Running: ${veracodeBinary} ${args.join(' ')}`);
@@ -83228,21 +83214,6 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
       core.info(`[POST] Manual replace (CRLF context) would change file: ${testReplace2 !== pomContentAfter ? 'YES' : 'NO'}`);
     }
 
-    // ===== RESTORE LINE ENDINGS HACK =====
-    // Convert LF back to CRLF after CLI execution to restore original format
-    core.info('=== Restoring line endings to original format ===');
-    if (fs.existsSync(pomPath)) {
-      const pomContentAfterFix = fs.readFileSync(pomPath, 'utf8');
-      // Check if file needs CRLF restoration (only if it originally had CRLF)
-      if (pomContentBefore !== null && pomContentBefore.includes('\r\n')) {
-        const pomContentRestored = pomContentAfterFix.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n');
-        if (pomContentAfterFix !== pomContentRestored) {
-          core.info('[HACK] Converting LF → CRLF in pom.xml to restore original line endings');
-          fs.writeFileSync(pomPath, pomContentRestored, 'utf8');
-          core.info('[HACK] Line ending restoration complete');
-        }
-      }
-    }
 
     // Debug: Check git status after fix
     core.info('=== Debug: Git status after fix ===');
