@@ -5,7 +5,10 @@
   "main": "src/index.js",
   "scripts": {
     "build": "ncc build src/index.js -o dist",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "keywords": [
     "veracode",
@@ -28,6 +31,7 @@
     "glob": "^10.3.10"
   },
   "devDependencies": {
-    "@vercel/ncc": "^0.36.0"
+    "@vercel/ncc": "^0.36.0",
+    "jest": "^29.7.0"
   }
 }
