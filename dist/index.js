@@ -83123,46 +83123,6 @@ ZipStream.prototype.finalize = function() {
 
 /***/ }),
 
-/***/ 50126:
-/***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
-
-/**
- * Build CLI arguments for veracode fix sca command
- * Extracted for testability
- */
-
-function buildCliArgs(workspaceDir, fixTransitiveInput) {
-  const path = __nccwpck_require__(71017);
-
-  // Base arguments always included
-  const args = [
-    'fix',
-    'sca',
-    '.',
-    '--results',
-    path.join(
-      workspaceDir,
-      'veracode_artifact_directory/Veracode Agent Based SCA Results',
-      'scaResults.json'
-    ),
-    '--async',
-    '--decouple',
-    'true',
-  ];
-
-  // Conditionally add --transitive flag based on input (default: true)
-  if (fixTransitiveInput === 'true' || fixTransitiveInput === '') {
-    args.push('--transitive');
-  }
-
-  return args;
-}
-
-module.exports = { buildCliArgs };
-
-
-/***/ }),
-
 /***/ 83759:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
@@ -83304,7 +83264,6 @@ const fs = __nccwpck_require__(57147);
 const path = __nccwpck_require__(71017);
 const core = __nccwpck_require__(42186);
 const exec = __nccwpck_require__(71514);
-const { buildCliArgs } = __nccwpck_require__(50126);
 
 async function runFixSca(workspaceDir, actionPath, fixScaParams) {
   try {
@@ -83317,11 +83276,26 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
     const veracodeBinary = path.join(`${process.env.CLI_PATH}`, binaryName);
 
     // Build command arguments
-    const fixTransitive = core.getInput('fix-transitive');
-    const baseArgs = buildCliArgs(workspaceDir, fixTransitive);
+    const args = [
+      'fix',
+      'sca',
+      projectPath,
+      '--results',
+      path.join(
+        workspaceDir,
+        'veracode_artifact_directory/Veracode Agent Based SCA Results',
+        'scaResults.json'
+      ),
+      '--async',
+      '--decouple',
+      'true',
+    ];
 
-    // Add --verbose flag (specific to Jake version for debugging)
-    const args = [...baseArgs, '--verbose'];
+    // Conditionally add --transitive flag (default: true)
+    const fixTransitive = core.getInput('fix-transitive');
+    if (fixTransitive !== 'false') {
+      args.push('--transitive');
+    }
 
     if (fixScaParams && fixScaParams.trim() && fixScaParams !== 'SCA-*') {
       core.info(`Fix SCA params: ${fixScaParams}`);

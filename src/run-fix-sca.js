@@ -2,7 +2,6 @@ const fs = require('fs');
 const path = require('path');
 const core = require('@actions/core');
 const exec = require('@actions/exec');
-const { buildCliArgs } = require('./build-cli-args');
 
 async function runFixSca(workspaceDir, actionPath, fixScaParams) {
   try {
@@ -15,11 +14,26 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
     const veracodeBinary = path.join(`${process.env.CLI_PATH}`, binaryName);
 
     // Build command arguments
-    const fixTransitive = core.getInput('fix-transitive');
-    const baseArgs = buildCliArgs(workspaceDir, fixTransitive);
+    const args = [
+      'fix',
+      'sca',
+      projectPath,
+      '--results',
+      path.join(
+        workspaceDir,
+        'veracode_artifact_directory/Veracode Agent Based SCA Results',
+        'scaResults.json'
+      ),
+      '--async',
+      '--decouple',
+      'true',
+    ];
 
-    // Add --verbose flag (specific to Jake version for debugging)
-    const args = [...baseArgs, '--verbose'];
+    // Conditionally add --transitive flag (default: true)
+    const fixTransitive = core.getInput('fix-transitive');
+    if (fixTransitive !== 'false') {
+      args.push('--transitive');
+    }
 
     if (fixScaParams && fixScaParams.trim() && fixScaParams !== 'SCA-*') {
       core.info(`Fix SCA params: ${fixScaParams}`);
