@@ -11,18 +11,23 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
     // Set up environment for veracode CLI
     const isWindows = process.platform === 'win32';
     const binaryName = isWindows ? 'veracode.exe' : 'veracode';
-    const veracodeBinary = path.join(`${process.env.CLI_PATH}`, binaryName); 
+    const veracodeBinary = path.join(`${process.env.CLI_PATH}`, binaryName);
     // Build command arguments
     const args = [
       'fix',
       'sca',
       projectPath,
       '--results', path.join(workspaceDir, 'veracode_artifact_directory/Veracode Agent Based SCA Results', 'scaResults.json'),
-      '--transitive',
-      '--async', 
+      '--async',
       '--decouple', 'true',
       '--verbose'
     ];
+
+    // Conditionally add --transitive flag based on input (default: true)
+    const fixTransitive = core.getInput('fix-transitive');
+    if (fixTransitive === 'true' || fixTransitive === '') {
+      args.push('--transitive');
+    }
 
     if (fixScaParams && fixScaParams.trim() && fixScaParams !== 'SCA-*') {
       core.info(`Fix SCA params: ${fixScaParams}`);
