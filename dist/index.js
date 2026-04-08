@@ -83293,7 +83293,7 @@ async function runFixSca(workspaceDir, actionPath, fixScaParams) {
 
     // Conditionally add --transitive flag (default: true)
     const fixTransitive = core.getInput('fix-transitive');
-    if (fixTransitive !== 'false') {
+    if (fixTransitive?.toLowerCase() !== 'false') {
       args.push('--transitive');
     }
 
